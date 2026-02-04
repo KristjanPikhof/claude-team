@@ -43,6 +43,14 @@ SKILLS: `~/.claude/skills/*/SKILL.md` - Available skills that team members can a
 - **PLANNING ONLY**: Do NOT build, write code, or deploy agents. Your only output is a plan document saved to `PLAN_OUTPUT_DIRECTORY`.
 - If no `USER_PROMPT` is provided, stop and ask the user to provide it.
 - If `ORCHESTRATION_PROMPT` is provided, use it to guide team composition, task granularity, dependency structure, and parallel/sequential decisions.
+- If `ORCHESTRATION_PROMPT` is NOT provided, auto-generate the orchestration using this default strategy:
+  1. **Analyze scope**: Determine how many distinct subsystems or logical units the USER_PROMPT touches (e.g., API, frontend, database, docs)
+  2. **Apply Builder+Validator pattern**: For each logical unit of work, assign a `builder` to implement and a `validator` to verify. This is the foundational pairing — always use it.
+  3. **Add specialists when needed**: Include `documenter` if docs changes are required, `browser-tester` if UI/web testing is needed, `code-reviewer` for complex or security-sensitive changes
+  4. **Parallelize independent groups**: If subsystems are independent (no shared files or state), mark their tasks as parallel
+  5. **Name agents by subsystem**: Use descriptive names like `builder-auth`, `validator-auth`, `builder-ui`, `validator-ui` to make the plan readable
+  6. **Default to simple**: For single-file or small-scope tasks, use one Builder + one Validator. Do not over-orchestrate simple work.
+  7. **Scale with complexity**: Simple tasks = 1 builder + 1 validator. Medium = 2-3 builders + validators grouped by subsystem. Complex = multiple parallel groups with specialists.
 - Carefully analyze the user's requirements provided in the USER_PROMPT variable
 - Determine the task type (chore|feature|refactor|fix|enhancement) and complexity (simple|medium|complex)
 - Think deeply (ultrathink) about the best approach to implement the requested functionality or solve the problem
@@ -228,9 +236,9 @@ IMPORTANT: **PLANNING ONLY** - Do not execute, build, or deploy. Output is a pla
 1. Analyze Requirements - Parse the USER_PROMPT to understand the core problem and desired outcome
 2. Understand Codebase - Without subagents, directly understand existing patterns, architecture, and relevant files
 3. Design Solution - Develop technical approach including architecture decisions and implementation strategy
-4. Define Team Members - Use `ORCHESTRATION_PROMPT` (if provided) to guide team composition. Identify from `.claude/agents/team/*.md` or use `general-purpose`. Document in plan.
+4. Define Team Members - If `ORCHESTRATION_PROMPT` is provided, use it to guide team composition. If NOT provided, auto-generate the team using the default strategy (Builder+Validator per subsystem, add specialists as needed). Identify agents from `.claude/agents/team/*.md` or use `general-purpose`. Document in plan.
 5. Assign Skills - Check `SKILLS` for skills relevant to the task. Match skills to team members (e.g., `frontend-design` for builders doing UI work, `code-review-excellence` for reviewers). Skills are activated by team members via the `Skill` tool during execution.
-6. Define Step by Step Tasks - Use `ORCHESTRATION_PROMPT` (if provided) to guide task granularity and parallel/sequential structure. Write out tasks with IDs, dependencies, assignments. Document in plan.
+6. Define Step by Step Tasks - If `ORCHESTRATION_PROMPT` is provided, use it to guide task granularity and parallel/sequential structure. If NOT provided, apply default: group tasks by subsystem, parallelize independent groups, sequence dependent ones. Write out tasks with IDs, dependencies, assignments. Document in plan.
 7. Generate Filename - Create a descriptive kebab-case filename based on the plan's main topic
 8. Save Plan - Write the plan to `PLAN_OUTPUT_DIRECTORY/<filename>.md`
 9. Save & Report - Follow the `Report` section to write the plan to `PLAN_OUTPUT_DIRECTORY/<filename>.md` and provide a summary of key components
