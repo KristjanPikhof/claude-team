@@ -1,0 +1,16 @@
+# Generated output
+specs/
+
+# Dependencies
+node_modules/
+
+# Claude Code - hook logs and local settings
+.claude/hooks/**/*.log
+.claude/settings.local.json
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
