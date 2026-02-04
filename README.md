@@ -8,7 +8,7 @@ Based on the [claude-code-hooks-mastery](https://github.com/disler/claude-code-h
 
 ```bash
 cd your-project
-bunx degit KristjanPikhof/claude-team/templates .claude && mkdir -p specs
+curl -fsSL https://raw.githubusercontent.com/KristjanPikhof/claude-team/main/install.sh | bash
 ```
 
 Done. Now in Claude Code:
@@ -20,8 +20,10 @@ Done. Now in Claude Code:
 
 ## Update Existing Setup
 
+Re-run the install command — it overwrites existing files:
+
 ```bash
-bunx degit KristjanPikhof/claude-team/templates .claude --force
+curl -fsSL https://raw.githubusercontent.com/KristjanPikhof/claude-team/main/install.sh | bash
 ```
 
 ## What Gets Installed
