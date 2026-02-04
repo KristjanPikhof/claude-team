@@ -136,13 +136,89 @@ Plans can reference skills from `~/.claude/skills/` that team members activate v
 
 ## Requirements
 
-- **Bun** — runs the TypeScript validators and CLI
+### Required
 
-Optional (validators gracefully skip if unavailable):
+| Tool | Purpose | Install |
+|---|---|---|
+| [Claude Code](https://docs.anthropic.com/en/docs/claude-code) | CLI that runs the agents, commands, and hooks | `npm install -g @anthropic-ai/claude-code` |
+| [Bun](https://bun.sh) | Runs all TypeScript hook validators | `curl -fsSL https://bun.sh/install \| bash` |
+| [Git](https://git-scm.com) | Used by Stop hooks to detect new files | Comes with macOS / `apt install git` |
 
-- `uvx` + `ruff` + `ty` — for Python linting/type checking
-- `biome` or `eslint` — for JS/TS linting
-- `tsc` — for TypeScript type checking
+### Optional — Language Validators
+
+Validators gracefully pass-through if their tools are missing. Install only what matches your stack:
+
+**Python projects:**
+
+| Tool | Purpose | Install |
+|---|---|---|
+| [uv](https://docs.astral.sh/uv/) | Runs ruff and ty via `uvx` | `curl -LsSf https://astral.sh/uv/install.sh \| sh` |
+| [ruff](https://docs.astral.sh/ruff/) | Python linter | Runs via `uvx ruff` (no install needed if uv is installed) |
+| [ty](https://github.com/astral-sh/ty) | Python type checker | Runs via `uvx ty` (no install needed if uv is installed) |
+
+**JavaScript/TypeScript projects:**
+
+| Tool | Purpose | Install |
+|---|---|---|
+| [Biome](https://biomejs.dev) | Fast JS/TS linter (tried first) | `bun add -d @biomejs/biome` |
+| [ESLint](https://eslint.org) | JS/TS linter (fallback if no Biome) | `bun add -d eslint` |
+| [TypeScript](https://www.typescriptlang.org) | Type checking via `tsc --noEmit` | `bun add -d typescript` |
+
+**Markdown (no install needed):**
+
+The markdownlint validator has built-in checks (heading hierarchy, blank lines, trailing newline). No external tools required.
+
+### Optional — Skills
+
+Skills enhance team agents with specialized knowledge. The planner auto-discovers skills from `~/.claude/skills/` and assigns them to team members. Skills are activated via the `Skill` tool during execution.
+
+**Code-reviewer built-in skills** (referenced in frontmatter — work automatically if the skill pack is installed):
+
+| Skill | Purpose |
+|---|---|
+| `ce:documenting-code-comments` | Standards for self-documenting code and minimal comments |
+| `ce:handling-errors` | Prevents silent failures and context loss in error handling |
+| `ce:writing-tests` | Behavior-focused tests using Testing Trophy model |
+
+**Recommended user skills** (install in `~/.claude/skills/`):
+
+| Skill | Best For | Used By |
+|---|---|---|
+| `frontend-design` | Distinctive, production-grade UI implementation | Builder agents doing frontend work |
+| `brainstorming` | Exploring intent, requirements, and design before building | Builder agents before creative work |
+| `code-review-excellence` | Constructive code review practices and feedback patterns | Code-reviewer agent |
+| `documentation-generation` | Technical docs, API refs, READMEs, architecture docs | Documenter agent |
+| `agent-browser` | Browser automation for testing web apps | Browser-tester agent |
+| `mermaid-diagram-generator` | Architecture diagrams, flowcharts, sequence diagrams | Documenter agent for visual docs |
+| `git-commit-helper` | Descriptive commit messages from git diffs | Any agent committing code |
+
+To install a skill, create its directory and `SKILL.md`:
+
+```bash
+mkdir -p ~/.claude/skills/your-skill
+# Add SKILL.md with frontmatter and instructions
+```
+
+Or use the `skill-writer` skill to create one interactively in Claude Code:
+
+```
+/skill-writer
+```
+
+### Full Setup (one-liner)
+
+Install all required + recommended tools:
+
+```bash
+# Required
+curl -fsSL https://bun.sh/install | bash
+
+# Python tools (optional)
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# JS/TS tools (optional — run in your project)
+bun add -d @biomejs/biome typescript
+```
 
 ## Customization
 
