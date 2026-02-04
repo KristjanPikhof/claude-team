@@ -1,0 +1,12 @@
+{
+  "name": "claude-team",
+  "version": "1.0.0",
+  "type": "module",
+  "bin": {
+    "claude-team": "./src/cli.ts"
+  },
+  "files": [
+    "src",
+    "templates"
+  ]
+}
