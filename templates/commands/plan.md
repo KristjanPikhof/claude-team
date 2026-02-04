@@ -4,6 +4,13 @@ argument-hint: [user prompt] [orchestration prompt]
 model: opus
 disallowed-tools: Task, EnterPlanMode
 hooks:
+  PostToolUse:
+    - matcher: "Write"
+      hooks:
+        - type: command
+          command: >-
+            bun run $CLAUDE_PROJECT_DIR/.claude/hooks/validators/ensure_gitignore.ts
+            --directory specs
   Stop:
     - hooks:
         - type: command
