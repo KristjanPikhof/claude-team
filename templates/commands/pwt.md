@@ -41,7 +41,7 @@ Create a detailed implementation plan based on the user's requirements provided 
 USER_PROMPT: $1
 ORCHESTRATION_PROMPT: $2 - (Optional) Guidance for team assembly, task structure, and execution strategy
 PLAN_OUTPUT_DIRECTORY: `specs/`
-TEAM_MEMBERS: `.claude/agents/team/*.md`
+TEAM_MEMBERS: `.claude/agents/team/*.md` - Available agents: builder, validator, browser-tester, code-reviewer, documenter
 GENERAL_PURPOSE_AGENT: `general-purpose`
 SKILLS: `~/.claude/skills/*/SKILL.md` - Available skills that team members can activate via the `Skill` tool
 
@@ -51,13 +51,16 @@ SKILLS: `~/.claude/skills/*/SKILL.md` - Available skills that team members can a
 - If no `USER_PROMPT` is provided, stop and ask the user to provide it.
 - If `ORCHESTRATION_PROMPT` is provided, use it to guide team composition, task granularity, dependency structure, and parallel/sequential decisions.
 - If `ORCHESTRATION_PROMPT` is NOT provided, auto-generate the orchestration using this default strategy:
-  1. **Analyze scope**: Determine how many distinct subsystems or logical units the USER_PROMPT touches (e.g., API, frontend, database, docs)
-  2. **Apply Builder+Validator pattern**: For each logical unit of work, assign a `builder` to implement and a `validator` to verify. This is the foundational pairing — always use it.
-  3. **Add specialists when needed**: Include `documenter` if docs changes are required, `browser-tester` if UI/web testing is needed, `code-reviewer` for complex or security-sensitive changes
-  4. **Parallelize independent groups**: If subsystems are independent (no shared files or state), mark their tasks as parallel
-  5. **Name agents by subsystem**: Use descriptive names like `builder-auth`, `validator-auth`, `builder-ui`, `validator-ui` to make the plan readable
-  6. **Default to simple**: For single-file or small-scope tasks, use one Builder + one Validator. Do not over-orchestrate simple work.
-  7. **Scale with complexity**: Simple tasks = 1 builder + 1 validator. Medium = 2-3 builders + validators grouped by subsystem. Complex = multiple parallel groups with specialists.
+  1. **Analyze scope**: Identify subsystems (API, frontend, database, docs)
+  2. **Apply Builder+Validator pairs**: Each implementation task gets a builder AND a validator immediately after
+  3. **Add specialists at the end**:
+     - `code-reviewer`: ALWAYS runs after all tasks complete to review all changes
+     - `browser-tester`: Runs if files match frontend patterns: `*.tsx`, `*.jsx`, `*.vue`, `*.svelte`, `components/`, `pages/`, `routes/`, `app/`, `src/ui/`
+     - `documenter`: If README/docs need updates
+  4. **Parallelize independent groups**: Tasks on different subsystems can run in parallel
+  5. **Name agents by subsystem**: `builder-auth`, `validator-auth`, `builder-ui`, `validator-ui`
+  6. **Include Remediation Loop**: If code-reviewer or browser-tester finds issues, spawn new builder to fix then re-validate until passing
+  7. **Scale with complexity**: Simple = 1 builder + 1 validator + code-reviewer. Medium = 2-3 builder+validator pairs + specialists. Complex = multiple parallel groups + full specialist suite.
 - Carefully analyze the user's requirements provided in the USER_PROMPT variable
 - Determine the task type (chore|feature|refactor|fix|enhancement) and complexity (simple|medium|complex)
 - Think deeply (ultrathink) about the best approach to implement the requested functionality or solve the problem
@@ -302,15 +305,38 @@ Use these files to complete the task:
 - Take note of the session id of each team member. This is how you'll reference them.
 
 ### Team Members
-<list the team members you'll use to execute the plan>
 
-- Builder
-  - Name: <unique name for this builder - this allows you and other team members to reference THIS builder by name. Take note there may be multiple builders, the name make them unique.>
-  - Role: <the single role and focus of this builder will play>
-  - Agent Type: <the subagent type of this builder, you'll specify based on the name in TEAM_MEMBERS file or GENERAL_PURPOSE_AGENT if you want to use a general-purpose agent>
-  - Skills: <list relevant skills from SKILLS to activate via the Skill tool before starting work, or "none">
-  - Resume: <default true. This lets the agent continue working with the same context. Pass false if you want to start fresh with a new context.>
-- <continue with additional team members as needed in the same format as above>
+<define all team members. Each builder task should have a paired validator. Include code-reviewer at end. Include browser-tester if frontend work.>
+
+#### Builders (implement features)
+- **builder-{subsystem}**
+  - Role: <specific feature/component to implement>
+  - Agent Type: builder (from `.claude/agents/team/builder.md`)
+  - Skills: <relevant skills or "none">
+
+#### Validators (verify each builder's work)
+- **validator-{subsystem}**
+  - Role: Validate <specific feature/component> implementation
+  - Agent Type: validator (from `.claude/agents/team/validator.md`)
+  - Skills: none
+
+#### Final Review (runs after all tasks)
+- **code-reviewer**
+  - Role: Comprehensive code review of ALL changes
+  - Agent Type: code-reviewer (from `.claude/agents/team/code-reviewer.md`)
+  - Skills: ce:documenting-code-comments, ce:handling-errors, ce:writing-tests
+
+#### Browser Testing (if frontend affected)
+- **browser-tester**
+  - Role: Test UI flows, check console errors, verify network requests
+  - Agent Type: browser-tester (from `.claude/agents/team/browser-tester.md`)
+  - Skills: none
+
+#### Remediation (spawned if issues found)
+- **fixer-{issue}**
+  - Role: Fix specific issues found by code-reviewer or browser-tester
+  - Agent Type: builder
+  - Skills: <as needed>
 
 ### Available Skills
 Skills live in `~/.claude/skills/` and are activated by team members via the `Skill` tool during execution. Match skills to tasks:
@@ -318,51 +344,131 @@ Skills live in `~/.claude/skills/` and are activated by team members via the `Sk
 
 ## Step by Step Tasks
 
-- IMPORTANT: Execute every step in order, top to bottom. Each task maps directly to a `TaskCreate` call.
-- Before you start, run `TaskCreate` to create the initial task list that all team members can see and execute.
+- Each implementation task is immediately followed by its validation task
+- Code review and browser testing run AFTER all tasks complete
+- If final review finds issues, spawn fixer agents and re-validate
 
-<list step by step tasks as h3 headers. Start with foundational work, then core implementation, then validation.>
+### Phase 1: Implementation (Builder+Validator pairs)
 
-### 1. <First Task Name>
-- **Task ID**: <unique kebab-case identifier, e.g., "setup-database">
-- **Depends On**: <Task ID(s) this depends on, or "none" if no dependencies>
-- **Assigned To**: <team member name from Team Members section>
-- **Agent Type**: <subagent from TEAM_MEMBERS file or GENERAL_PURPOSE_AGENT if you want to use a general-purpose agent>
-- **Skills**: <skills to activate via `Skill` tool before starting, or "none">
-- **Parallel**: <true if can run alongside other tasks, false if must be sequential>
-- <specific action to complete>
-- <specific action to complete>
+#### 1. Implement {Feature A}
+- **Task ID**: implement-feature-a
+- **Depends On**: none
+- **Assigned To**: builder-{subsystem}
+- **Agent Type**: builder
+- **Skills**: <relevant skills or "none">
+- **Parallel**: <true if independent of other tasks>
+- <specific implementation actions>
 
-### 2. <Second Task Name>
-- **Task ID**: <unique-id>
-- **Depends On**: <previous Task ID, e.g., "setup-database">
-- **Assigned To**: <team member name>
-- **Agent Type**: <subagent type from TEAM_MEMBERS file or GENERAL_PURPOSE_AGENT if you want to use a general-purpose agent>
-- **Skills**: <skills to activate, or "none">
-- **Parallel**: <true/false>
-- <specific action>
-- <specific action>
-
-### 3. <Continue Pattern>
-
-### N. <Final Validation Task>
-- **Task ID**: validate-all
-- **Depends On**: <all previous Task IDs>
-- **Assigned To**: <validator team member>
-- **Agent Type**: <validator agent>
+#### 2. Validate {Feature A}
+- **Task ID**: validate-feature-a
+- **Depends On**: implement-feature-a
+- **Assigned To**: validator-{subsystem}
+- **Agent Type**: validator
+- **Skills**: none
 - **Parallel**: false
-- Run all validation commands
-- Verify acceptance criteria met
+- Verify implementation correctness
+- Run tests and linters
+- Report pass/fail
 
-<continue with additional tasks as needed. Agent types must exist in .claude/agents/team/*.md>
+#### 3. Implement {Feature B}
+- **Task ID**: implement-feature-b
+- **Depends On**: <depends on context, may be "none" if parallel>
+- **Assigned To**: builder-{subsystem}
+- **Agent Type**: builder
+- **Skills**: <relevant skills or "none">
+- **Parallel**: <true if independent>
+- <specific implementation actions>
+
+#### 4. Validate {Feature B}
+- **Task ID**: validate-feature-b
+- **Depends On**: implement-feature-b
+- **Assigned To**: validator-{subsystem}
+- **Agent Type**: validator
+- **Skills**: none
+- **Parallel**: false
+- Verify implementation correctness
+- Run tests and linters
+- Report pass/fail
+
+<continue Builder+Validator pairs for each feature>
+
+### Phase 2: Final Review
+
+#### N-2. Code Review All Changes
+- **Task ID**: code-review
+- **Depends On**: <all previous validation tasks>
+- **Assigned To**: code-reviewer
+- **Agent Type**: code-reviewer
+- **Skills**: ce:documenting-code-comments, ce:handling-errors, ce:writing-tests
+- **Parallel**: false
+- Review all changed files
+- Check for bugs, security issues, performance
+- Report verdict: APPROVE or REQUEST CHANGES with specific issues
+
+#### N-1. Browser Test UI Flows (if frontend affected)
+- **Task ID**: browser-test
+- **Depends On**: code-review
+- **Assigned To**: browser-tester
+- **Agent Type**: browser-tester
+- **Skills**: none
+- **Parallel**: false
+- Test all affected UI flows
+- Check console for errors
+- Check network requests
+- Report pass/fail with screenshots
+
+### Phase 3: Remediation Loop
+
+#### N. Fix Issues (if any found)
+- **Task ID**: fix-issues
+- **Depends On**: code-review, browser-test
+- **Assigned To**: fixer (new builder agent)
+- **Agent Type**: builder
+- **Skills**: <as needed based on issues>
+- **Parallel**: false
+- **Condition**: Only if code-review or browser-test reported issues
+- Fix all Critical and Important issues
+- After fixing, re-run code-review and browser-test
+- Repeat until all pass
 
 ## Acceptance Criteria
 <list specific, measurable criteria that must be met for the task to be considered complete>
 
+## Remediation Loop
+
+If `code-reviewer` or `browser-tester` reports failures:
+
+1. **Parse Issues**: Extract Critical and Important issues from reports
+2. **Spawn Fixer**: Create new `builder` agent with task:
+   - Include the specific issues to fix
+   - Include file paths and line numbers
+   - Reference the original task context
+3. **Fix**: Builder implements fixes
+4. **Re-validate**:
+   - Run `validator` on fixed files
+   - Re-run `code-reviewer`
+   - Re-run `browser-tester` (if applicable)
+5. **Loop**: If still failing, repeat steps 1-4
+6. **Exit**: When all pass, mark plan as complete
+
+**Maximum iterations**: 3
+
+After 3 fix attempts without resolution, the orchestrator must:
+- Stop the loop
+- Report all remaining issues to the user
+- Ask for guidance before continuing
+
 ## Validation Commands
+
 Execute these commands to validate the task is complete:
 
-<list specific commands to validate the work. Be precise about what to run>
+<list specific commands. Examples:>
+- `bun test` or `npm test` - Run test suite
+- `bun run typecheck` or `npx tsc --noEmit` - Type checking
+- `bunx biome check .` or `npx eslint .` - Linting
+- `uvx ruff check .` - Python linting
+- `uvx ty check .` - Python type checking
+- `git diff --stat` - Review changed files
 
 ## Notes
 <optional additional context, considerations, or dependencies>
