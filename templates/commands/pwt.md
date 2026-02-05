@@ -306,7 +306,7 @@ Use these files to complete the task:
 
 ### Team Members
 
-<define all team members. Each builder task should have a paired validator. Include code-reviewer at end. Include browser-tester if frontend work.>
+<define all team members. Each builder task should have a paired validator. Include code-reviewer at end. Include browser-tester if frontend work. Include documenter if README/docs need updates.>
 
 #### Builders (implement features)
 - **builder-{subsystem}**
@@ -331,6 +331,12 @@ Use these files to complete the task:
   - Role: Test UI flows, check console errors, verify network requests
   - Agent Type: browser-tester (from `.claude/agents/team/browser-tester.md`)
   - Skills: none
+
+#### Documentation (if README/docs need updates)
+- **documenter**
+  - Role: Update README, API docs, or other documentation to reflect changes
+  - Agent Type: documenter (from `.claude/agents/team/documenter.md`)
+  - Skills: ce:documenting-systems, ce:writer
 
 #### Remediation (spawned if issues found)
 - **fixer-{issue}**
@@ -394,7 +400,7 @@ Skills live in `~/.claude/skills/` and are activated by team members via the `Sk
 
 ### Phase 2: Final Review
 
-#### N-2. Code Review All Changes
+#### N-3. Code Review All Changes
 - **Task ID**: code-review
 - **Depends On**: <all previous validation tasks>
 - **Assigned To**: code-reviewer
@@ -405,7 +411,7 @@ Skills live in `~/.claude/skills/` and are activated by team members via the `Sk
 - Check for bugs, security issues, performance
 - Report verdict: APPROVE or REQUEST CHANGES with specific issues
 
-#### N-1. Browser Test UI Flows (if frontend affected)
+#### N-2. Browser Test UI Flows (if frontend affected)
 - **Task ID**: browser-test
 - **Depends On**: code-review
 - **Assigned To**: browser-tester
@@ -417,11 +423,22 @@ Skills live in `~/.claude/skills/` and are activated by team members via the `Sk
 - Check network requests
 - Report pass/fail with screenshots
 
+#### N-1. Update Documentation (if docs need updates)
+- **Task ID**: update-docs
+- **Depends On**: code-review
+- **Assigned To**: documenter
+- **Agent Type**: documenter
+- **Skills**: ce:documenting-systems, ce:writer
+- **Parallel**: true (can run parallel with browser-test)
+- Update README, API docs, or other documentation
+- Reflect new features, changed behavior, or updated usage
+- Ensure examples are accurate
+
 ### Phase 3: Remediation Loop
 
 #### N. Fix Issues (if any found)
 - **Task ID**: fix-issues
-- **Depends On**: code-review, browser-test
+- **Depends On**: code-review, browser-test, update-docs
 - **Assigned To**: fixer (new builder agent)
 - **Agent Type**: builder
 - **Skills**: <as needed based on issues>
